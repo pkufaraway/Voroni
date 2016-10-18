@@ -8,23 +8,7 @@ def euclideanDistance(x1, y1, x2, y2):
     distance = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
     return math.sqrt(distance)
 
-HOST = 'localhost'    
-PORT = 9000
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
 
-# N == number of stones for the game
-N = int(sys.argv[1])
-
-easy_grid = [[0] * 50 for item in range(0, 50)]
-easy_pull = [[{1: 0, 2: 0} for j in range(0, 50)] for i in range(0, 50)]
-easy_choice = [[0] * 50 for item in range(0, 50)]
-
-grid = [[0] * 1000 for item in range(0, 1000)]
-pull = [[{1: 0, 2: 0} for j in range(0,1000)] for i in range(0, 1000)]
-choice = [[0] * 1000 for item in range(0, 1000)]
-moves = []
-weplayer = 1
 
 
 def real_index(i,j):
@@ -48,7 +32,7 @@ def init_distance():
 '''
 
 
-def easy_refresh_pull(player, x, y):
+def easy_refresh_pull(player, weplayer, x, y, easy_grid, easy_choice, moves, easy_pull, N):
     x1, y1 = center_index(x, y)
     easy_grid[x1][y1] = player
     easy_choice[x1][y1] = player
@@ -80,7 +64,7 @@ def easy_refresh_pull(player, x, y):
     return count
 
 
-def find_next_move():
+def find_next_move(weplayer, N, easy_grid, easy_choice, moves, easy_pull):
     x = 0
     y = 0
     max = 0
@@ -88,8 +72,8 @@ def find_next_move():
     for i in range(0, 25):
         for j in range(0, 25):
             a, b = real_index(i, j)
-            if is_valid(a, b):
-                score = easy_refresh_pull(weplayer, a, b)
+            if is_valid(a, b, moves):
+                score = easy_refresh_pull(weplayer, weplayer, a, b, easy_grid, easy_choice, moves, easy_pull, N)
                 if score > max:
                     print score, a, b
                     max = score
@@ -100,8 +84,8 @@ def find_next_move():
     for i in range(0, 40):
         for j in range(0, 40):
             a, b = small_real_index(cx,cy,i,j)
-            if is_valid(a, b):
-                score = easy_refresh_pull(weplayer, a, b)
+            if is_valid(a, b, moves):
+                score = easy_refresh_pull(weplayer, weplayer, a, b, easy_grid, easy_choice, moves, easy_pull, N)
                 if score > max:
                     print score, a, b
                     max = score
@@ -112,7 +96,7 @@ def find_next_move():
 
 
 # update pull array for each element
-def refresh_pull(player, x, y):
+def refresh_pull(player, x, y, grid, choice, easy_grid, easy_choice, pull, easy_pull):
     grid[x][y] = player
     choice[x][y] = player
 
@@ -139,69 +123,8 @@ def refresh_pull(player, x, y):
 
 
 # Judge whether a new point is valid
-def is_valid(x, y):
+def is_valid(x, y, moves):
     for move in moves:
         if euclideanDistance(x, y, move[0], move[1]) < 66:
             return False
     return True
-
-def main():
-
-    while 1:
-        serverResponse = s.recv(1024)
-        data = serverResponse.split()
-
-        # Check if the game has ended
-        if int(data[0]) == 1:
-            count1 = 0
-            count2 = 0
-            for i in range(0, 1000):
-                for j in range(0, 1000):
-                    if choice[i][j] == 1:
-                        count1 += 1
-                    else:
-                        count2 += 1
-            break
-
-        # Construct the grid by placing all the moves so far
-        numberOfMoves = int(data[1])
-
-        player = 0
-        global weplayer
-        for item in range(numberOfMoves - 1, numberOfMoves):
-            i = int(data[2 + item * 3])
-            j = int(data[2 + item * 3 + 1])
-            player = int(data[2 + item * 3 + 2])
-            if player > 0:
-                moves.append((i, j, player))
-                refresh_pull(player, i, j)
-                weplayer = 3 - player
-
-        print "weplayer", weplayer
-        # Make a random valid move. Your algorithm goes here instead of the
-        # following randomized move selection
-        validMoveFound = False
-        nextI = 0
-        nextJ = 0
-
-        while not validMoveFound:
-            if len(moves) == 0:
-                nextI, nextJ = 250, 250
-                break
-            moveI, moveJ = find_next_move()
-
-            validMoveFound = is_valid(moveI, moveJ)
-
-            if validMoveFound:
-                nextI = moveI
-                nextJ = moveJ
-
-        refresh_pull(weplayer, nextI, nextJ)
-
-        moves.append((nextI, nextJ, 3-player))
-        s.sendall("{} {}".format(nextI, nextJ))
-
-    s.close()
-
-if __name__ == "__main__":
-    main()
