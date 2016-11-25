@@ -9,7 +9,7 @@ def euclideanDistance(x1, y1, x2, y2):
     return math.sqrt(distance)
 
 HOST = 'localhost'    
-PORT = 9000        
+PORT = 5000        
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 
